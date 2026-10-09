@@ -48,8 +48,9 @@
         const map = L.map('map').setView(latLng, 12)
         const marker = L.marker(latLng).addTo(map)
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', {
             maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map)
 
         const socket = io("", {
