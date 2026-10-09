@@ -64,8 +64,13 @@
         socket.on("map-data", data => {
             if (data.id == id) {
                 displayId.innerHTML = `${id} - updating`
-                marker.setLatLng([data.lat, data.lng])
-                map.setView([data.lat, data.lng])
+                const lat = Number(data.lat)
+                const lng = Number(data.lng)
+
+                if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                    marker.setLatLng([lat, lng])
+                    map.setView([lat, lng], 15)
+                }
 
                 setTimeout(() => {
                     displayId.innerHTML = id
